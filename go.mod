@@ -3,7 +3,7 @@ module github.com/smcavallo/github-app-token-updater
 go 1.25.0
 
 require (
-	github.com/golang-jwt/jwt/v5 v5.3.0
+	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/sirupsen/logrus v1.9.4
 	k8s.io/apimachinery v0.35.0
 	k8s.io/client-go v0.35.0
