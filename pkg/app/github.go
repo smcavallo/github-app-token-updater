@@ -1,12 +1,12 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"time"
@@ -18,6 +18,8 @@ import (
 const (
 	errGetJwtToken      = "error creating token: %w"
 	errPemDoesNotExist  = "error private-key.pem does not exist: %w"
+	errPemRead          = "error reading private-key.pem: %w"
+	errPemParse         = "error parsing private-key.pem as an RSA private key: %w"
 	errHttpRequestError = "error making http request: %w"
 	errJSONUnmarshal    = "unable to unmarshal token response: %w"
 )
@@ -37,8 +39,14 @@ func GenerateJWT(appID string, pemFilePath string) (string, error) {
 	if errors.Is(err, os.ErrNotExist) {
 		return "", fmt.Errorf(errPemDoesNotExist, err)
 	}
+	if err != nil {
+		return "", fmt.Errorf(errPemRead, err)
+	}
 
-	privateKey, _ := jwt.ParseRSAPrivateKeyFromPEM(pemKey)
+	privateKey, err := jwt.ParseRSAPrivateKeyFromPEM(pemKey)
+	if err != nil {
+		return "", fmt.Errorf(errPemParse, err)
+	}
 
 	tokenString, err := token.SignedString(privateKey)
 	if err != nil {
@@ -92,19 +100,18 @@ type GithubAppInstallationTokenResponse struct {
 }
 
 func ReadAndUnmarshal(resp *http.Response, target any) error {
-	var buf bytes.Buffer
 	defer func() {
-		err := resp.Body.Close()
-		if err != nil {
-			return
-		}
+		_ = resp.Body.Close()
 	}()
-	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return fmt.Errorf("failed to authenticate with the given credentials: %d %s", resp.StatusCode, buf.String())
-	}
-	_, err := buf.ReadFrom(resp.Body)
+
+	// Read the body before checking the status so that error responses
+	// (e.g. {"message":"Bad credentials"}) are included in the returned error.
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
-	return json.Unmarshal(buf.Bytes(), target)
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return fmt.Errorf("failed to authenticate with the given credentials: %d %s", resp.StatusCode, body)
+	}
+	return json.Unmarshal(body, target)
 }
