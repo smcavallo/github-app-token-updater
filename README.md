@@ -13,7 +13,7 @@ There are some solutions for refreshing the tokens.
 The challenge is wiring up those solutions to self-hosted renovate.
 
 The goal of this application is to provide a simple way to refresh the token and expose it to renovate.
-* Given a private key and a GitHub Application ID and Installation ID, it will generate a new token and write it to a kubernetes secret
+* Given a private key, a GitHub App Client ID (or App ID) and an Installation ID, it will generate a new token and write it to a kubernetes secret
 * It will leverage the official renovate helm chart and run as an init container
 * You can simply point your self-hosted renovate bot at the secret to automatically use the new token
 
@@ -72,8 +72,8 @@ renovate:
     initContainers:
       - name: github-app-token-updater
         env:
-          - name: GITHUB_APP_ID
-            value: "1234567"
+          - name: GITHUB_APP_CLIENT_ID
+            value: "Iv23liXXXXXXXXXXXXXX"
           - name: GITHUB_INSTALLATION_ID
             value: "123456789"
           - name: SECRET_NAMESPACE
@@ -94,3 +94,13 @@ renovate:
 ```
 
 The init container will run before the renovate container and will ensure whenever the pod launches it will have a fresh token that will be good for 1 hour.
+
+### App identifier: Client ID vs App ID
+GitHub [recommends using the app's Client ID](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-json-web-token-jwt-for-a-github-app) as the `iss` claim of the JWT (the App ID is still accepted).
+
+| Environment variable | Description |
+| --- | --- |
+| `GITHUB_APP_CLIENT_ID` | The GitHub App's Client ID (shown on the app's settings page). **Preferred.** |
+| `GITHUB_APP_ID` | The GitHub App's numeric App ID. Used as a fallback when `GITHUB_APP_CLIENT_ID` is not set. |
+
+If both are set, `GITHUB_APP_CLIENT_ID` is used. If neither is set, the program exits with an error. Existing deployments that only set `GITHUB_APP_ID` keep working unchanged.
