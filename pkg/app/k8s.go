@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
-	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -47,8 +47,8 @@ func UpdateKubernetesSecret(namespace string, secretName string, secretKey strin
 		return updateErr
 	})
 	if retryErr != nil {
-		logrus.Errorf("failed to update secret %s in namespace %s: %v", secretName, namespace, retryErr)
+		slog.Error("failed to update secret", "secret", secretName, "namespace", namespace, "error", retryErr)
 		panic(fmt.Errorf("update failed: %v", retryErr))
 	}
-	logrus.Infof("Updated kubernetes secret %s data key %s in namespace %s with new github app token", secretName, secretKey, namespace)
+	slog.Info("Updated kubernetes secret with new github app token", "secret", secretName, "key", secretKey, "namespace", namespace)
 }
