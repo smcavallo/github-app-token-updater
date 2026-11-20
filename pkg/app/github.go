@@ -24,15 +24,16 @@ const (
 	errJSONUnmarshal    = "unable to unmarshal token response: %w"
 )
 
-// GenerateJWT calls the GitHub api to get a JWT
+// GenerateJWT generates a JWT for the GitHub App, signed with the private key at pemFilePath.
+// issuer is used as the `iss` claim and is the app's client ID (recommended) or app ID.
 // https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-json-web-token-jwt-for-a-github-app#example-using-python-to-generate-a-jwt
-func GenerateJWT(appID string, pemFilePath string) (string, error) {
+func GenerateJWT(issuer string, pemFilePath string) (string, error) {
 	now := time.Now()
 
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
 		"iat": jwt.NewNumericDate(now.Add(-time.Minute)),
 		"exp": jwt.NewNumericDate(now.Add(5 * time.Minute)),
-		"iss": appID,
+		"iss": issuer,
 	})
 
 	pemKey, err := os.ReadFile(pemFilePath)
