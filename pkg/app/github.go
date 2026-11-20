@@ -7,12 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -90,7 +90,7 @@ func GetGithubAppInstallationToken(jwt string, installationId string) (string, e
 	if err != nil {
 		return "", fmt.Errorf(errJSONUnmarshal, err)
 	}
-	logrus.Infof("Retrieved new github token with expiry %s", githubAppInstallationTokenResponse.ExpiresAt)
+	slog.Info("Retrieved new github token", "expires_at", githubAppInstallationTokenResponse.ExpiresAt)
 	return githubAppInstallationTokenResponse.Token, err
 }
 
